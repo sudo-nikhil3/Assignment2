@@ -1,0 +1,37 @@
+digraph G {
+  rankdir=TB; nodesep=0.5; ranksep=0.55;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef3fb", color="#4a6fa5"];
+  edge [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  jira   [label="Jira (Scrum board)\nsprint, backlog, SCRUM-n tickets", fillcolor="#e3f0ff"];
+  dev    [label="Developer\n(Ubuntu + VS Code)"];
+  git    [label="Git\nfeature branch -> PR -> main"];
+  gh     [label="GitHub repo", fillcolor="#f0f0f0"];
+
+  subgraph cluster_ci {
+    label="GitHub Actions CI/CD"; fontname="Helvetica"; style="dashed"; color="#888888";
+    test   [label="1. Test\npytest"];
+    build  [label="2. Docker build\nimage"];
+    deploy [label="3. Deploy (self-hosted runner)\ndocker compose up -d"];
+  }
+
+  subgraph cluster_run {
+    label="Docker Compose stack (Ubuntu host)"; fontname="Helvetica"; style="dashed"; color="#888888";
+    app  [label="iris-app\nFlask + gunicorn :8000\n/predict /health /metrics", fillcolor="#e6f6e6"];
+    prom [label="Prometheus :9090\nscrapes /metrics every 5s", fillcolor="#fde9d9"];
+    graf [label="Grafana :3000\nIris App Monitoring dashboard", fillcolor="#fde9d9"];
+  }
+
+  mlflow [label="MLflow\nexperiments, registry,\nchampion alias", fillcolor="#f3e8fb"];
+
+  jira -> dev  [label="pick ticket"];
+  dev -> git   [label="commit (SCRUM-n)"];
+  git -> gh    [label="push / PR"];
+  gh -> test   [label="trigger"];
+  test -> build -> deploy;
+  deploy -> app [label="deploy"];
+  mlflow -> app [label="models/model.joblib", style=dashed];
+  app -> prom  [label="/metrics"];
+  prom -> graf [label="data source"];
+  gh -> jira   [label="issue key in branch/commit", style=dotted, constraint=false];
+}
